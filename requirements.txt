@@ -1,0 +1,7 @@
+docker
+requests
+httpx
+aiofiles
+aiohttp
+fastapi
+uvicorn[standard]
