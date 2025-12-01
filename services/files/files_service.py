@@ -240,7 +240,7 @@ class FilesService:
             async with aiofiles.open(self.minecraft_installed_mods, 'w') as f:            
                 await f.write(json.dumps(installed_mods, indent=4))
 
-            self.docker_service.restart_container("minecraft-server")
+            self.docker_service.restart_container("eldoria-server")
             return True
         
         except Exception as e:

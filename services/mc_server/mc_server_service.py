@@ -11,7 +11,7 @@ class McServerService:
         self.rcon_password = os.getenv("MINECRAFT_RCON_PASSWORD", "mgmm4103")
         self.docker_service = DockerService()
         self.mods_service = ModsService()
-        self.container_name = "minecraft-server"
+        self.container_name = "eldoria-server"
 
 
     async def send_rcon_command(self, command: str) -> str:
@@ -62,7 +62,7 @@ class McServerService:
     async def start_server(self) -> bool:
         try:
             await asyncio.sleep(5)
-            return await self.docker_service.start_container("minecraft-server")
+            return await self.docker_service.start_container("eldoria-server")
         except Exception as e:
             print(f"Error starting server: {e}")
             return False
@@ -77,7 +77,7 @@ class McServerService:
             await asyncio.sleep(2)  # Wait for save to complete
             await self.send_rcon_command("stop")
 
-            return await self.docker_service.stop_container("minecraft-server")
+            return await self.docker_service.stop_container("eldoria-server")
         except Exception as e:
             print(f"Error stopping server: {e}")
             return False
@@ -92,14 +92,14 @@ class McServerService:
             await asyncio.sleep(2)  # Wait for save to complete
             await self.send_rcon_command("stop")
 
-            return await self.docker_service.restart_container("minecraft-server")
+            return await self.docker_service.restart_container("eldoria-server")
         except Exception as e:
             print(f"Error restarting server: {e}")
             return False
         
     async def get_server_status(self) -> str:
         try:
-            container = await self.docker_service.get_container("minecraft-server")
+            container = await self.docker_service.get_container("eldoria-server")
             if container:
                 return container.status
             return "not_found"
