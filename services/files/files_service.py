@@ -19,26 +19,24 @@ class FilesService:
     async def get_server_config(self):
         
         try:
-
-            container = await self.docker_service.get_container("minecraft-server")
-
-            if not container:
+            config_path = Path(f"{self.minecraft_server_path}server.properties")
+            
+            if not config_path.exists():
+                print(f"Config file not found: {config_path}")
                 return None
-        
-            config_path = f"{self.minecraft_server_path}server.properties"
-            exit_code, output = await self.docker_service.exec_in_container("minecraft-server", f"cat {config_path}")
-
-            if exit_code == 0:
-                config_content = output
-                config_lines = config_content.splitlines()
-                config_dict = {}
-                
-                for line in config_lines:
-                    if '=' in line and not line.startswith('#'):
-                        key, value = line.split('=', 1)
-                        config_dict[key.strip()] = value.strip()
-                
-                return config_dict
+            
+            async with aiofiles.open(config_path, 'r') as f:
+                config_content = await f.read()
+            
+            config_lines = config_content.splitlines()
+            config_dict = {}
+            
+            for line in config_lines:
+                if '=' in line and not line.startswith('#'):
+                    key, value = line.split('=', 1)
+                    config_dict[key.strip()] = value.strip()
+            
+            return config_dict
         
         except Exception as e:
             print(f"Error retrieving server config: {e}")
@@ -47,44 +45,43 @@ class FilesService:
     async def get_server_config_lite(self):
         
         try:
-            container = await self.docker_service.get_container("minecraft-server")
-
-            if not container:
+            config_path = Path(f"{self.minecraft_server_path}server.properties")
+            
+            if not config_path.exists():
+                print(f"Config file not found: {config_path}")
                 return None
             
-            config_path = f"{self.minecraft_server_path}server.properties"
-            exit_code, output = await self.docker_service.exec_in_container("minecraft-server", f"cat {config_path}")
-
-            if exit_code == 0:
-                config_content = output
-                config_lines = config_content.splitlines()
-                config_dict = {}
-                
-                for line in config_lines:
-                    if '=' in line and not line.startswith('#'):
-                        key, value = line.split('=', 1)
-                        config_dict[key.strip()] = value.strip()
-                
-                lite_config = {
-                    "difficulty": config_dict.get("difficulty"),
-                    "gamemode": config_dict.get("gamemode"),
-                    "hardcore": config_dict.get("hardcore"),
-                    "simulation-distance": config_dict.get("simulation-distance"),
-                    "server-port": config_dict.get("server-port"),
-                    "pvp": config_dict.get("pvp"),
-                    "rcon.password": config_dict.get("rcon.password"),
-                    "rcon.port": config_dict.get("rcon.port"),
-                    "enable-rcon": config_dict.get("enable-rcon"),
-                    "level-seed": config_dict.get("level-seed"),
-                    "max-world-size": config_dict.get("max-world-size"),
-                    "max-tick-time": config_dict.get("max-tick-time"),
-                    "max-players": config_dict.get("max-players"),
-                    "motd": config_dict.get("motd"),
-                    "white-list": config_dict.get("white-list"),
-                    "view-distance": config_dict.get("view-distance"),
-                }
-                
-                return lite_config
+            async with aiofiles.open(config_path, 'r') as f:
+                config_content = await f.read()
+            
+            config_lines = config_content.splitlines()
+            config_dict = {}
+            
+            for line in config_lines:
+                if '=' in line and not line.startswith('#'):
+                    key, value = line.split('=', 1)
+                    config_dict[key.strip()] = value.strip()
+            
+            lite_config = {
+                "difficulty": config_dict.get("difficulty"),
+                "gamemode": config_dict.get("gamemode"),
+                "hardcore": config_dict.get("hardcore"),
+                "simulation-distance": config_dict.get("simulation-distance"),
+                "server-port": config_dict.get("server-port"),
+                "pvp": config_dict.get("pvp"),
+                "rcon.password": config_dict.get("rcon.password"),
+                "rcon.port": config_dict.get("rcon.port"),
+                "enable-rcon": config_dict.get("enable-rcon"),
+                "level-seed": config_dict.get("level-seed"),
+                "max-world-size": config_dict.get("max-world-size"),
+                "max-tick-time": config_dict.get("max-tick-time"),
+                "max-players": config_dict.get("max-players"),
+                "motd": config_dict.get("motd"),
+                "white-list": config_dict.get("white-list"),
+                "view-distance": config_dict.get("view-distance"),
+            }
+            
+            return lite_config
         
         except Exception as e:
             print(f"Error retrieving lite server config: {e}")
@@ -92,37 +89,34 @@ class FilesService:
         
     async def get_ips_banned_whitelist_ops(self):
         try:
-            container = await self.docker_service.get_container("minecraft-server")
-            if not container:
-                return None
-            
             files = {
-                "banned-ips": f"{self.minecraft_server_path}banned-ips.json",
-                "banned-players": f"{self.minecraft_server_path}banned-players.json",
-                "whitelist": f"{self.minecraft_server_path}whitelist.json",
-                "ops": f"{self.minecraft_server_path}ops.json"
+                "banned-ips": Path(f"{self.minecraft_server_path}banned-ips.json"),
+                "banned-players": Path(f"{self.minecraft_server_path}banned-players.json"),
+                "whitelist": Path(f"{self.minecraft_server_path}whitelist.json"),
+                "ops": Path(f"{self.minecraft_server_path}ops.json")
             }
             
             data = {}
             
             for key, path in files.items():
-                exit_code, output = await self.docker_service.exec_in_container("minecraft-server", f"cat {path}")
+                if not path.exists():
+                    data[key] = []
+                    continue
                 
-                if exit_code == 0:
-                    try:
-                        json_data = json.loads(output)
-                        
-                        if key == "banned-ips":
-                            data[key] = [item["ip"] for item in json_data]
-                        elif key == "banned-players":
-                            data[key] = [item["name"] for item in json_data]
-                        elif key == "whitelist":
-                            data[key] = [item["name"] for item in json_data]
-                        elif key == "ops":
-                            data[key] = [item["name"] for item in json_data]
-                    except json.JSONDecodeError:
-                        data[key] = []
-                else:
+                try:
+                    async with aiofiles.open(path, 'r') as f:
+                        content = await f.read()
+                    json_data = json.loads(content)
+                    
+                    if key == "banned-ips":
+                        data[key] = [item["ip"] for item in json_data]
+                    elif key == "banned-players":
+                        data[key] = [item["name"] for item in json_data]
+                    elif key == "whitelist":
+                        data[key] = [item["name"] for item in json_data]
+                    elif key == "ops":
+                        data[key] = [item["name"] for item in json_data]
+                except json.JSONDecodeError:
                     data[key] = []
             
             return data
